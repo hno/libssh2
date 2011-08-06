@@ -276,9 +276,9 @@ LIBSSH2_API int libssh2_sftp_rename_ex(LIBSSH2_SFTP *sftp,
                                        const char *dest_filename,
                                        unsigned int dest_filename_len,
                                        long flags);
-#define libssh2_sftp_rename(sftp, sourcefile, destfile) \
-    libssh2_sftp_rename_ex((sftp), (sourcefile), strlen(sourcefile), \
-                           (destfile), strlen(destfile),                \
+#define libssh2_sftp_rename(sftp, source_filename, dest_filename) \
+    libssh2_sftp_rename_ex((sftp), (source_filename), strlen(source_filename), \
+                           (dest_filename), strlen(dest_filename), \
                            LIBSSH2_SFTP_RENAME_OVERWRITE | \
                            LIBSSH2_SFTP_RENAME_ATOMIC | \
                            LIBSSH2_SFTP_RENAME_NATIVE)
