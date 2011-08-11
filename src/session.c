@@ -579,14 +579,17 @@ int _libssh2_wait_socket(LIBSSH2_SESSION *session, time_t start_time)
        being stored as error when a blocking function has returned */
     session->err_code = LIBSSH2_ERROR_NONE;
 
-    rc = libssh2_keepalive_send (session, &seconds_to_next);
-    if (rc < 0)
-        return rc;
-
-    ms_to_next = seconds_to_next * 1000;
-
     /* figure out what to wait for */
     dir = libssh2_session_block_directions(session);
+
+    /* Skip sending keep-alive if already blocking trying to send something */
+    if ((dir & !LIBSSH2_SESSION_BLOCK_OUTBOUND)) {
+        rc = libssh2_keepalive_send (session, &seconds_to_next);
+        if (rc < 0)
+            return rc;
+    }
+
+    ms_to_next = seconds_to_next * 1000;
 
     if(!dir) {
         _libssh2_debug(session, LIBSSH2_TRACE_SOCKET,

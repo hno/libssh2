@@ -38,6 +38,7 @@
 
 #include "libssh2_priv.h"
 #include "transport.h" /* _libssh2_transport_write */
+#include "session.h"   /* BLOCK_ADJUST */
 
 /* Keep-alive stuff. */
 
@@ -53,8 +54,8 @@ libssh2_keepalive_config (LIBSSH2_SESSION *session,
     session->keepalive_want_reply = want_reply ? 1 : 0;
 }
 
-LIBSSH2_API int
-libssh2_keepalive_send (LIBSSH2_SESSION *session,
+static int
+keepalive_send (LIBSSH2_SESSION *session,
                         int *seconds_to_next)
 {
     time_t now;
@@ -78,9 +79,7 @@ libssh2_keepalive_send (LIBSSH2_SESSION *session,
         keepalive_data[len - 1] = session->keepalive_want_reply;
 
         rc = _libssh2_transport_send(session, keepalive_data, len, NULL, 0);
-        /* Silently ignore PACKET_EAGAIN here: if the write buffer is
-           already full, sending another keepalive is not useful. */
-        if (rc && rc != LIBSSH2_ERROR_EAGAIN) {
+        if (rc) {
             _libssh2_error(session, LIBSSH2_ERROR_SOCKET_SEND,
                            "Unable to send keepalive message");
             return rc;
@@ -95,4 +94,16 @@ libssh2_keepalive_send (LIBSSH2_SESSION *session,
     }
 
     return 0;
+}
+
+/* Helper as sending keep-alive may need to block to avoid corrupting the transport */
+LIBSSH2_API int
+libssh2_keepalive_send (LIBSSH2_SESSION *session,
+                        int *seconds_to_next)
+{
+    int rc;
+
+    BLOCK_ADJUST(rc, session, keepalive_send(session, seconds_to_next) );
+
+    return rc;
 }
