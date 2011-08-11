@@ -78,6 +78,9 @@ keepalive_send (LIBSSH2_SESSION *session,
 
         keepalive_data[len - 1] = session->keepalive_want_reply;
 
+        /* FIXME! this assumes keepalive_data gets the same location when
+         * called again after EAGAIN
+         */
         rc = _libssh2_transport_send(session, keepalive_data, len, NULL, 0);
         if (rc) {
             _libssh2_error(session, LIBSSH2_ERROR_SOCKET_SEND,

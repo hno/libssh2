@@ -2126,6 +2126,9 @@ static int channel_send_eof(LIBSSH2_CHANNEL *channel)
                    channel->local.id, channel->remote.id);
     packet[0] = SSH_MSG_CHANNEL_EOF;
     _libssh2_htonu32(packet + 1, channel->remote.id);
+    /* FIXME! this assumes packet gets the same location when called again
+     * after EAGAIN
+     */
     rc = _libssh2_transport_send(session, packet, 5, NULL, 0);
     if (rc == LIBSSH2_ERROR_EAGAIN) {
         _libssh2_error(session, rc,

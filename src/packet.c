@@ -586,6 +586,9 @@ _libssh2_packet_add(LIBSSH2_SESSION * session, unsigned char *data,
                     unsigned char packet = SSH_MSG_REQUEST_FAILURE;
                   libssh2_packet_add_jump_point5:
                     session->packAdd_state = libssh2_NB_state_jump5;
+                    /* FIXME! this assumes packet gets the same location when
+                     * called again after EAGAIN
+                     */
                     rc = _libssh2_transport_send(session, &packet, 1, NULL, 0);
                     if (rc == LIBSSH2_ERROR_EAGAIN)
                         return rc;
@@ -820,6 +823,9 @@ _libssh2_packet_add(LIBSSH2_SESSION * session, unsigned char *data,
                     session->packAdd_state = libssh2_NB_state_jump4;
                     packet[0] = SSH_MSG_CHANNEL_FAILURE;
                     memcpy(&packet[1], data+1, 4);
+                    /* FIXME! this assumes packet gets the same location when
+                     * called again after EAGAIN
+                     */
                     rc = _libssh2_transport_send(session, packet, 5, NULL, 0);
                     if (rc == LIBSSH2_ERROR_EAGAIN)
                         return rc;
