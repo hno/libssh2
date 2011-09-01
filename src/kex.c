@@ -1658,20 +1658,12 @@ static int kex_agree_methods(LIBSSH2_SESSION * session, unsigned char *data,
 
 
 
-/* _libssh2_kex_exchange
- * Exchange keys
- * Returns 0 on success, non-zero on failure
- *
- * Returns some errors without _libssh2_error()
- */
-int
-_libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
+static int
+_libssh2_do_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
                      key_exchange_state_t * key_state)
 {
     int rc = 0;
     int retcode;
-
-    session->state |= LIBSSH2_STATE_KEX_ACTIVE;
 
     if (key_state->state == libssh2_NB_state_idle) {
         /* Prevent loop in packet_add() */
@@ -1704,13 +1696,11 @@ _libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
         if (key_state->state == libssh2_NB_state_sent) {
             retcode = kexinit(session);
             if (retcode == LIBSSH2_ERROR_EAGAIN) {
-                session->state &= ~LIBSSH2_STATE_KEX_ACTIVE;
                 return retcode;
             } else if (retcode) {
                 session->local.kexinit = key_state->oldlocal;
                 session->local.kexinit_len = key_state->oldlocal_len;
                 key_state->state = libssh2_NB_state_idle;
-                session->state &= ~LIBSSH2_STATE_KEX_ACTIVE;
                 session->state &= ~LIBSSH2_STATE_EXCHANGING_KEYS;
                 return -1;
             }
@@ -1725,7 +1715,6 @@ _libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
                                         &key_state->data_len, 0, NULL, 0,
                                         &key_state->req_state);
             if (retcode == LIBSSH2_ERROR_EAGAIN) {
-                session->state &= ~LIBSSH2_STATE_KEX_ACTIVE;
                 return retcode;
             }
             else if (retcode) {
@@ -1735,7 +1724,6 @@ _libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
                 session->local.kexinit = key_state->oldlocal;
                 session->local.kexinit_len = key_state->oldlocal_len;
                 key_state->state = libssh2_NB_state_idle;
-                session->state &= ~LIBSSH2_STATE_KEX_ACTIVE;
                 session->state &= ~LIBSSH2_STATE_EXCHANGING_KEYS;
                 return -1;
             }
@@ -1761,7 +1749,6 @@ _libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
             retcode = session->kex->exchange_keys(session,
                                                   &key_state->key_state_low);
             if (retcode == LIBSSH2_ERROR_EAGAIN) {
-                session->state &= ~LIBSSH2_STATE_KEX_ACTIVE;
                 return retcode;
             } else if (retcode) {
                 rc = _libssh2_error(session, LIBSSH2_ERROR_KEY_EXCHANGE_FAILURE,
@@ -1780,7 +1767,6 @@ _libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
         session->remote.kexinit = NULL;
     }
 
-    session->state &= ~LIBSSH2_STATE_KEX_ACTIVE;
     session->state &= ~LIBSSH2_STATE_EXCHANGING_KEYS;
 
     key_state->state = libssh2_NB_state_idle;
@@ -1788,6 +1774,28 @@ _libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
     return rc;
 }
 
+/* _libssh2_kex_exchange
+ * Exchange keys
+ * Returns 0 on success, non-zero on failure
+ *
+ * Returns some errors without _libssh2_error()
+ */
+int
+_libssh2_kex_exchange(LIBSSH2_SESSION * session, int reexchange,
+                     key_exchange_state_t * key_state)
+{
+    int rc;
+
+    /* tell transport that a key exchange is being processed and
+     * no packets should be processed */
+    session->state |= LIBSSH2_STATE_KEX_ACTIVE;
+
+    rc = _libssh2_do_kex_exchange(session, reexchange, key_state);
+
+    session->state &= ~LIBSSH2_STATE_KEX_ACTIVE;
+
+    return rc;
+}
 
 
 /* libssh2_session_method_pref
