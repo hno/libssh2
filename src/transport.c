@@ -852,18 +852,18 @@ int _libssh2_transport_send(LIBSSH2_SESSION *session,
         }
     }
 
-    session->local.seqno++;
-
     ret = LIBSSH2_SEND(session, p->outbuf, total_length,
                         LIBSSH2_SOCKET_SEND_FLAGS(session));
     if (ret < 0)
         _libssh2_debug(session, LIBSSH2_TRACE_SOCKET,
                        "Error sending %d bytes: %d", total_length, -ret);
     else {
-        _libssh2_debug(session, LIBSSH2_TRACE_SOCKET, "Sent %d/%d bytes at %p",
-                       ret, total_length, p->outbuf);
+        _libssh2_debug(session, LIBSSH2_TRACE_SOCKET, "Sent %d/%d bytes at %p/%u",
+                       ret, total_length, p->outbuf, session->local.seqno);
         debugdump(session, "libssh2_transport_write send()", p->outbuf, ret);
     }
+
+    session->local.seqno++;
 
     if (ret != total_length) {
         if (ret >= 0 || ret == -EAGAIN) {
