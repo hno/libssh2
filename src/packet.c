@@ -522,6 +522,11 @@ _libssh2_packet_add(LIBSSH2_SESSION * session, unsigned char *data,
             session->packAdd_state = libssh2_NB_state_idle;
             return 0;
 
+        case SSH_MSG_UNIMPLEMENTED:
+            LIBSSH2_FREE(session, data);
+            session->packAdd_state = libssh2_NB_state_idle;
+            return 0;
+
             /*
               byte      SSH_MSG_DEBUG
               boolean   always_display
